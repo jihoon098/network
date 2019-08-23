@@ -54,7 +54,7 @@ public class RequestHandler extends Thread {
 				responseStaticResource(outputStream, tokens[1], tokens[2]);
 			} else { // POST, PUT, DELETE 명령은 무시
 				consoleLog("bad request:" + request);
-				//response400Error(outputStream, tokens[2]);
+				response400Error(outputStream, tokens[2]);
 			}
 			
 			// 예제 응답입니다.
@@ -91,7 +91,7 @@ public class RequestHandler extends Thread {
 		File file = new File("./webapp" + url);
 		if(file.exists() == false) {
 			consoleLog("File Not Found:" + url);
-			//response404Error(outputStream, tokens[2]);
+			response404Error(outputStream, protocol);
 			return;
 		}
 		
@@ -105,6 +105,36 @@ public class RequestHandler extends Thread {
 		outputStream.write( "\r\n".getBytes() );
 		outputStream.write( body );
 	}
+	
+	private void response400Error(OutputStream outputStream, String protocol) throws IOException{ //없는 명령
+		if("Get".equals(protocol)) {
+		}else {
+			File file = new File("./webapp/error/400.html");
+			byte[] body = Files.readAllBytes(file.toPath());
+			String contentType = Files.probeContentType(file.toPath());
+			
+			// 응답
+			outputStream.write( (protocol + " 400 OK\r\n").getBytes( "UTF-8" ) );
+			outputStream.write( ("Content-Type:" + contentType + "; charset=utf-8\r\n").getBytes( "UTF-8" ) );
+			outputStream.write( "\r\n".getBytes() );
+			outputStream.write( body );
+			
+		}
+	}
+	
+	//파일이 없으면
+	private void response404Error(OutputStream outputStream, String protocol) throws IOException {
+		File file = new File("./webapp/error/404.html");
+		byte[] body = Files.readAllBytes(file.toPath());
+		String contentType = Files.probeContentType(file.toPath());
+		
+		// 응답
+		outputStream.write( (protocol + " 404 OK\r\n").getBytes( "UTF-8" ) );
+		outputStream.write( ("Content-Type:" + contentType + "; charset=utf-8\r\n").getBytes( "UTF-8" ) );
+		outputStream.write( "\r\n".getBytes() );
+		outputStream.write( body );
+	}
+	
 
 	
 	public void consoleLog( String message ) {

@@ -2,7 +2,9 @@ package echo;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
@@ -10,66 +12,71 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class EchoClient {
-	private static String SERVER_IP = "192.168.1.16";
+	private static String SERVER_IP = "192.168.1.92";
 	private static int SERVER_PORT = 8000;
 	
 	public static void main(String[] args) {
-		Scanner scanner = null;
+		
 		Socket socket = null;
-	
+		Scanner sc = null;
+		
 		try {
-			//1. Scanner 생성(표준입력, 키보드 연결)
-			scanner = new Scanner(System.in);
-			
-			//2. 소켓생성
+			//socket과 서버를 연결
 			socket = new Socket();
+			InetSocketAddress inetSocketAddress
+			= new InetSocketAddress(SERVER_IP, SERVER_PORT);
+			socket.connect(inetSocketAddress);
 			
-			//3. 서버연결
-			socket.connect(new InetSocketAddress(SERVER_IP, SERVER_PORT));
-			log("connected");
+			//socket의 I/O Stream가져오기
+			InputStream is = socket.getInputStream();
+			OutputStream os = socket.getOutputStream();
 			
-			//4. I/O Stream생성
-			BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
-			PrintWriter pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"), true);
+			//사용자로부터 입력값을 Write
+			sc = new Scanner(System.in);
 
 			while(true) {
-				//5. 키보드 입력 받기
 				System.out.print(">>");
-				String line = scanner.nextLine();
-				if("quit".equals(line)) {
-					break;
-				}
-
-				//6. 데이터 쓰기(전송)
-				pw.println(line);
+				String data = sc.nextLine();
 				
-				//7. 데이터 읽기(수신)
-				String data = br.readLine();
-				if(data == null) {
-					log("closed by client");
-					break;
+				if(data.equals("exit")) {
+					return;
+				}
+				os.write(data.getBytes("UTF-8"));
+			
+				//server로 부터 받은 값 read
+				byte[] buffer = new byte[256];
+				int readByteCount = is.read(buffer); //Blocking
+				if(readByteCount == -1) {
+					System.out.println("[TCPClient] closed by client");
+					return;
 				}
 				
-				//8. 콘솔 출력
-				System.out.println("<<" + data);
+				data = new String(buffer, 0, readByteCount, "UTF-8");
+				System.out.println("<<" + data);				
 			}
+			
+			
 		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
+			//8. Server Socket 자원정리
+			
+			sc.close();
+			
+			
 			try {
-				if(scanner != null) {
-					scanner.close();
-				}
 				if(socket != null && socket.isClosed() == false) {
 					socket.close();
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		}		
-	}
-	
-	private static void log(String log) {
-		System.out.println("[Echo Client] " + log);
+		}
+		
+		
+		
+		
+		
 	}
 }
